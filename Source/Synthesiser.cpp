@@ -10,7 +10,7 @@ DownBeatSound::~DownBeatSound()
 
 bool DownBeatSound::appliesToNote (int midiNoteNumber)
 {        
-    if (midiNoteNumber == 48)
+    if (midiNoteNumber == SleighBellVoice::DownBeatNote)
         return true;
     else
         return false;
@@ -31,7 +31,7 @@ OtherBeatSound::~OtherBeatSound()
 
 bool OtherBeatSound::appliesToNote (int midiNoteNumber)
 {    
-    if (midiNoteNumber == 50)
+    if (midiNoteNumber == SleighBellVoice::OtherBeatNote)
         return true;
     else
         return false;

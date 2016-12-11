@@ -44,6 +44,12 @@ public:
     void setLpfFrequency (float newFrequency);
     void setHpfFrequency (float newFrequency);
     
+    enum NoteNumbers
+    {
+        DownBeatNote = 48,
+        OtherBeatNote = 50
+    };
+    
 private:
     static const int numChannels = 2;
     int midiNote;

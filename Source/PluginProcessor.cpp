@@ -4,48 +4,43 @@
 
 ChristmasMetronomeAudioProcessor::ChristmasMetronomeAudioProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", AudioChannelSet::stereo(), true)),
-      fs (44100.0f)
+      fs (44100.0f),
+      voiceNotes {SleighBellVoice::DownBeatNote, SleighBellVoice::OtherBeatNote},
+      defaultGains {0.0f, 0.0f},
+      defaultLpfFrequencies {20000.0f, 10000.0f},
+      defaultHpfFrequencies {5000.0f, 3000.0f},
+      gainIds {"dbgain", "obgain"},
+      lpfIds {"dblpf", "oblpf"},
+      hpfIds {"dbhpf", "obhpf"},
+      gainNames {"Down Beat Gain", "Other Beat Gain"},
+      lpfNames {"Down Beat LPF Frequency", "Other Beat LPF Frequency"},
+      hpfNames {"Down Beat HPF Frequency", "Other Beat HPF Frequency"}
 {  
-    sleighBellSynth.addVoice (new SleighBellVoice (48));
-    sleighBellSynth.addSound (new DownBeatSound); 
-    sleighBellSynth.addVoice (new SleighBellVoice (50));
-    sleighBellSynth.addSound (new OtherBeatSound);
-    
-    auto downBeatGainCallback = [this] (float gain) {setDownBeatGain (Decibels::decibelsToGain (gain));};
-    addParameter (downBeatGainParam = new ParameterWithCallback ("dbgain", "Down Beat Gain",
-                                                                 -80.0f, 3.0f,
-                                                                 0.0f, 1.0f,
-                                                                 downBeatGainCallback));
-                                                         
-    auto downBeatLpfCallback = [this] (float frequency) {setDownBeatLpfFrequency (frequency);};
-    addParameter (downBeatLpfParam = new ParameterWithCallback ("dblpf", "Down Beat LPF Frequency",
-                                                                3000.0f, 20000.0f,
-                                                                20000.0f, 1.0f / 3.0f,
-                                                                downBeatLpfCallback));
-                                                        
-    auto downBeatHpfCallback = [this] (float frequency) {setDownBeatHpfFrequency (frequency);};
-    addParameter (downBeatHpfParam = new ParameterWithCallback ("dbhpf", "Down Beat HPF Frequency",
-                                                                3000.0f, 10000.0f,
-                                                                5000.0f, 1.0f / 3.0f,
-                                                                downBeatHpfCallback));
-                                                                
-    auto otherBeatGainCallback = [this] (float gain) {setOtherBeatGain (Decibels::decibelsToGain (gain));};
-    addParameter (otherBeatGainParam = new ParameterWithCallback ("obgain", "Other Beat Gain",
+    for (int i = 0; i < numVoices; ++i)
+    {
+        sleighBellSynth.addVoice (new SleighBellVoice (voiceNotes [i]));
+        
+        auto gainCallback = [this, i] (float gain) {setVoiceGain (i, Decibels::decibelsToGain (gain));};
+        addParameter (gainParams [i] = new ParameterWithCallback (gainIds [i], gainNames [i],
                                                                   -80.0f, 3.0f,
-                                                                  0.0f, 1.0f,
-                                                                  otherBeatGainCallback));
+                                                                  defaultGains [i], 1.0f,
+                                                                  gainCallback));
                                                          
-    auto otherBeatLpfCallback = [this] (float frequency) {setOtherBeatLpfFrequency (frequency);};
-    addParameter (otherBeatLpfParam = new ParameterWithCallback ("oblpf", "Other Beat LPF Frequency",
+        auto lpfCallback = [this, i] (float frequency) {setVoiceLpfFrequency (i, frequency);};
+        addParameter (lpfParams [i] = new ParameterWithCallback (lpfIds [i], lpfNames [i],
                                                                  3000.0f, 20000.0f,
-                                                                 10000.0f, 1.0f / 3.0f,
-                                                                 otherBeatLpfCallback));
+                                                                 defaultLpfFrequencies [i], 1.0f / 3.0f,
+                                                                 lpfCallback));
                                                         
-    auto otherBeatHpfCallback = [this] (float frequency) {setOtherBeatHpfFrequency (frequency);};
-    addParameter (otherBeatHpfParam = new ParameterWithCallback ("obhpf", "Other Beat HPF Frequency",
+        auto hpfCallback = [this, i] (float frequency) {setVoiceHpfFrequency (i, frequency);};
+        addParameter (hpfParams [i] = new ParameterWithCallback (hpfIds [i], hpfNames [i],
                                                                  3000.0f, 10000.0f,
-                                                                 3000.0f, 1.0f / 3.0f,
-                                                                 otherBeatHpfCallback));
+                                                                 defaultHpfFrequencies [i], 1.0f / 3.0f,
+                                                                 hpfCallback));
+    }
+       
+    sleighBellSynth.addSound (new DownBeatSound); 
+    sleighBellSynth.addSound (new OtherBeatSound);                                                    
 }
 
 ChristmasMetronomeAudioProcessor::~ChristmasMetronomeAudioProcessor()
@@ -109,16 +104,7 @@ void ChristmasMetronomeAudioProcessor::prepareToPlay (double sampleRate, int sam
     fs = sampleRate;
     
     sleighBellSynth.setCurrentPlaybackSampleRate (sampleRate);
-    
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
-    voice->prepareToPlay (samplesPerBlock, sampleRate);
-    voice->setLpfFrequency (*downBeatLpfParam);
-    voice->setHpfFrequency (*downBeatHpfParam);
-    
-    voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (1));
-    voice->prepareToPlay (samplesPerBlock, sampleRate);
-    voice->setLpfFrequency (*otherBeatLpfParam);
-    voice->setHpfFrequency (*otherBeatHpfParam);
+    prepareVoices (sampleRate, samplesPerBlock);
 }
 
 void ChristmasMetronomeAudioProcessor::releaseResources()
@@ -144,21 +130,34 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     if (! playHead.isPlaying)
         return;
     
-    double bpm = playHead.bpm;
-    int64 time = playHead.timeInSamples;
-    double samplesPerBeat = fs * 60 / bpm;
+    double crotchetsPerMinute = playHead.bpm;
+    double samplesPerCrotchet = fs * 60.0 / crotchetsPerMinute;
     int timeSig = playHead.timeSigNumerator;
+    double samplesPerBeat = samplesPerCrotchet * 4.0 / playHead.timeSigDenominator; 
+    
+    double beatInBar = (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart);
+    int beatInteger = floor (beatInBar);
+    double beatFraction = beatInBar - beatInteger;
+    double beatSample = - samplesPerBeat * beatFraction;
+    
+    while (beatSample < 0)
+    {
+        beatSample += samplesPerBeat;
+        ++beatInteger;
+    }
     
     const int numSamples = buffer.getNumSamples();
     
-    for (int i = 0; i < numSamples; ++i)
+    //Logger::outputDebugString (String (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart));
+    
+    for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
-        if (round (std::fmod (time, samplesPerBeat * timeSig)) == 0)
-            midiMessages.addEvent (MidiMessage::noteOn (1, 48, (uint8) 127), i);
-        else if (round (std::fmod (time, samplesPerBeat)) == 0)
-            midiMessages.addEvent (MidiMessage::noteOn (1, 50, (uint8) 127), i);
-            
-        time++;
+        if (beatInteger % timeSig == 0)
+            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::DownBeatNote, (uint8) 127),
+                                   round (beatSample));
+        else
+            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::OtherBeatNote, (uint8) 127),
+                                   round (beatSample));
     }
     
     sleighBellSynth.renderNextBlock (buffer, midiMessages, 0, numSamples);
@@ -186,40 +185,33 @@ void ChristmasMetronomeAudioProcessor::setStateInformation (const void* data, in
 {
 }
 
-void ChristmasMetronomeAudioProcessor::setDownBeatGain (float gain)
+void ChristmasMetronomeAudioProcessor::setVoiceGain (int voice, float gain)
 {
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
-    voice->setGain (gain);
+    SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
+    v->setGain (gain);
 }
 
-void ChristmasMetronomeAudioProcessor::setDownBeatLpfFrequency (float frequency)
+void ChristmasMetronomeAudioProcessor::setVoiceLpfFrequency (int voice, float frequency)
 {
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
-    voice->setLpfFrequency (frequency);
+    SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
+    v->setLpfFrequency (frequency);
 }
 
-void ChristmasMetronomeAudioProcessor::setDownBeatHpfFrequency (float frequency)
+void ChristmasMetronomeAudioProcessor::setVoiceHpfFrequency (int voice, float frequency)
 {
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
-    voice->setHpfFrequency (frequency);
-}
-    
-void ChristmasMetronomeAudioProcessor::setOtherBeatGain (float gain)
-{
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (1));
-    voice->setGain (gain);
+    SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
+    v->setHpfFrequency (frequency);
 }
 
-void ChristmasMetronomeAudioProcessor::setOtherBeatLpfFrequency (float frequency)
-{
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (1));
-    voice->setLpfFrequency (frequency);
-}
-
-void ChristmasMetronomeAudioProcessor::setOtherBeatHpfFrequency (float frequency)
-{
-    SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (1));
-    voice->setHpfFrequency (frequency);
+void ChristmasMetronomeAudioProcessor::prepareVoices (double sampleRate, int samplesPerBlock)
+{       
+    for (int i = 0; i < numVoices; ++i)
+    {
+        SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (i));
+        voice->prepareToPlay (samplesPerBlock, sampleRate);
+        voice->setLpfFrequency (*lpfParams [i]);
+        voice->setHpfFrequency (*hpfParams [i]);
+    }
 }
 
 //==============================================================================

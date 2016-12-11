@@ -39,16 +39,17 @@ private:
     double fs;
     Synthesiser sleighBellSynth;
     
-    ParameterWithCallback *downBeatGainParam, *downBeatLpfParam, *downBeatHpfParam;
-    ParameterWithCallback *otherBeatGainParam, *otherBeatLpfParam, *otherBeatHpfParam;
+    static const int numVoices = 2;
+    int voiceNotes [numVoices];
+    ParameterWithCallback *gainParams [numVoices], *lpfParams [numVoices], *hpfParams [numVoices];
+    float defaultGains [numVoices], defaultLpfFrequencies [numVoices], defaultHpfFrequencies [numVoices];
+    String gainIds [numVoices], lpfIds [numVoices], hpfIds [numVoices];
+    String gainNames [numVoices], lpfNames [numVoices], hpfNames [numVoices];
     
-    void setDownBeatGain (float gain);
-    void setDownBeatLpfFrequency (float frequency);
-    void setDownBeatHpfFrequency (float frequency);
-    
-    void setOtherBeatGain (float gain);
-    void setOtherBeatLpfFrequency (float frequency);
-    void setOtherBeatHpfFrequency (float frequency);
+    void setVoiceGain (int voice, float gain);
+    void setVoiceLpfFrequency (int voice, float frequency);
+    void setVoiceHpfFrequency (int voice, float frequency);
+    void prepareVoices (double sampleRate, int samplesPerBlock);
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChristmasMetronomeAudioProcessor)
 };
