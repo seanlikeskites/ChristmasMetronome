@@ -13,6 +13,12 @@
               companyName="Flying Pigeon">
   <MAINGROUP id="JazfZA" name="ChristmasMetronome">
     <GROUP id="{93FDFE92-BC6C-3440-AF46-E9AE5138AF7B}" name="Source">
+      <FILE id="joJOr2" name="ParameterSlider.cpp" compile="1" resource="0"
+            file="Source/ParameterSlider.cpp"/>
+      <FILE id="VNGcjV" name="ParameterSlider.h" compile="0" resource="0"
+            file="Source/ParameterSlider.h"/>
+      <FILE id="v0y0Ag" name="LookAndFeel.cpp" compile="1" resource="0" file="Source/LookAndFeel.cpp"/>
+      <FILE id="dC6Dxt" name="LookAndFeel.h" compile="0" resource="0" file="Source/LookAndFeel.h"/>
       <FILE id="ax1i2X" name="Synthesiser.cpp" compile="1" resource="0" file="Source/Synthesiser.cpp"/>
       <FILE id="dMbu2u" name="Synthesiser.h" compile="0" resource="0" file="Source/Synthesiser.h"/>
       <FILE id="SzvRra" name="ParameterWithCallback.cpp" compile="1" resource="0"

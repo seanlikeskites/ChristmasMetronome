@@ -15,7 +15,7 @@ public:
 
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
 
-    void processBlock (AudioSampleBuffer&, MidiBuffer&) override;
+    void processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages) override;
 
     AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
@@ -35,13 +35,14 @@ public:
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    static const int numVoices = 2;
+    ParameterWithCallback *gainParams [numVoices], *lpfParams [numVoices], *hpfParams [numVoices];
+    
 private:
     double fs;
     Synthesiser sleighBellSynth;
     
-    static const int numVoices = 2;
     int voiceNotes [numVoices];
-    ParameterWithCallback *gainParams [numVoices], *lpfParams [numVoices], *hpfParams [numVoices];
     float defaultGains [numVoices], defaultLpfFrequencies [numVoices], defaultHpfFrequencies [numVoices];
     String gainIds [numVoices], lpfIds [numVoices], hpfIds [numVoices];
     String gainNames [numVoices], lpfNames [numVoices], hpfNames [numVoices];

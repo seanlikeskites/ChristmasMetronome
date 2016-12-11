@@ -22,7 +22,7 @@ ChristmasMetronomeAudioProcessor::ChristmasMetronomeAudioProcessor()
         
         auto gainCallback = [this, i] (float gain) {setVoiceGain (i, Decibels::decibelsToGain (gain));};
         addParameter (gainParams [i] = new ParameterWithCallback (gainIds [i], gainNames [i],
-                                                                  -80.0f, 3.0f,
+                                                                  -20.0f, 3.0f,
                                                                   defaultGains [i], 1.0f,
                                                                   gainCallback));
                                                          
@@ -168,12 +168,12 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
 //==============================================================================
 bool ChristmasMetronomeAudioProcessor::hasEditor() const
 {
-    return false;
+    return true;
 }
 
 AudioProcessorEditor* ChristmasMetronomeAudioProcessor::createEditor()
 {
-    return nullptr; // new ChristmasMetronomeAudioProcessorEditor (*this);
+    return new ChristmasMetronomeAudioProcessorEditor (*this);
 }
 
 //==============================================================================
