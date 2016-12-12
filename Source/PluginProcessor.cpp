@@ -129,6 +129,8 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     if (! playHead.isPlaying)
         return;
+        
+    midiMessages.clear();
     
     double crotchetsPerMinute = playHead.bpm;
     double samplesPerCrotchet = fs * 60.0 / crotchetsPerMinute;
@@ -148,7 +150,7 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     const int numSamples = buffer.getNumSamples();
     
-    //Logger::outputDebugString (String (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart));
+    Logger::outputDebugString (String (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart));
     
     for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
