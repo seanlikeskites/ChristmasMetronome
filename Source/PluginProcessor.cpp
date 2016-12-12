@@ -134,10 +134,12 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     double crotchetsPerMinute = playHead.bpm;
     double samplesPerCrotchet = fs * 60.0 / crotchetsPerMinute;
-    int timeSig = playHead.timeSigNumerator;
-    double samplesPerBeat = samplesPerCrotchet * 4.0 / playHead.timeSigDenominator; 
+    double crotchetsPerBeat = 4.0 / playHead.timeSigDenominator;
+    double samplesPerBeat = samplesPerCrotchet * crotchetsPerBeat;
     
-    double beatInBar = (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart);
+    int timeSig = playHead.timeSigNumerator;
+    
+    double beatInBar = (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart) / crotchetsPerBeat;
     int beatInteger = floor (beatInBar);
     double beatFraction = beatInBar - beatInteger;
     double beatSample = - samplesPerBeat * beatFraction;
@@ -150,7 +152,7 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     const int numSamples = buffer.getNumSamples();
     
-    Logger::outputDebugString (String (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart));
+    Logger::outputDebugString (String (beatInBar));
     
     for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
