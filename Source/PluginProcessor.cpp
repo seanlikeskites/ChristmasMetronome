@@ -152,8 +152,6 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     const int numSamples = buffer.getNumSamples();
     
-    Logger::outputDebugString (String (beatInBar));
-    
     for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
         if (beatInteger % timeSig == 0)
