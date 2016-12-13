@@ -3,6 +3,7 @@
 #include "Synthesiser.h"
 
 ChristmasMetronomeAudioProcessor::ChristmasMetronomeAudioProcessor()
+    // We have a lot of stuff to initialise in this class.
     : AudioProcessor (BusesProperties().withOutput ("Output", AudioChannelSet::stereo(), true)),
       fs (44100.0f),
       voiceNotes {SleighBellVoice::DownBeatNote, SleighBellVoice::OtherBeatNote},
@@ -16,22 +17,27 @@ ChristmasMetronomeAudioProcessor::ChristmasMetronomeAudioProcessor()
       lpfNames {"Down Beat LPF Frequency", "Other Beat LPF Frequency"},
       hpfNames {"Down Beat HPF Frequency", "Other Beat HPF Frequency"}
 {  
+    // Loop through all the voices we want the synthesiser to have.
     for (int i = 0; i < numVoices; ++i)
     {
+        // Add a voice to the synthesiser.
         sleighBellSynth.addVoice (new SleighBellVoice (voiceNotes [i]));
         
+        // Create a gain parameter for this voice.
         auto gainCallback = [this, i] (float gain) {setVoiceGain (i, Decibels::decibelsToGain (gain));};
         addParameter (gainParams [i] = new ParameterWithCallback (gainIds [i], gainNames [i],
                                                                   -20.0f, 3.0f,
                                                                   defaultGains [i], 1.0f,
                                                                   gainCallback));
                                                          
+        // Create an lpf parameter for this voice.
         auto lpfCallback = [this, i] (float frequency) {setVoiceLpfFrequency (i, frequency);};
         addParameter (lpfParams [i] = new ParameterWithCallback (lpfIds [i], lpfNames [i],
                                                                  3000.0f, 20000.0f,
                                                                  defaultLpfFrequencies [i], 1.0f / 3.0f,
                                                                  lpfCallback));
                                                         
+        // Create a hpf parameter for this voice.
         auto hpfCallback = [this, i] (float frequency) {setVoiceHpfFrequency (i, frequency);};
         addParameter (hpfParams [i] = new ParameterWithCallback (hpfIds [i], hpfNames [i],
                                                                  3000.0f, 10000.0f,
@@ -39,6 +45,7 @@ ChristmasMetronomeAudioProcessor::ChristmasMetronomeAudioProcessor()
                                                                  hpfCallback));
     }
        
+    // Add some sounds to the synthesiser.
     sleighBellSynth.addSound (new DownBeatSound); 
     sleighBellSynth.addSound (new OtherBeatSound);                                                    
 }
@@ -98,11 +105,12 @@ void ChristmasMetronomeAudioProcessor::changeProgramName (int /*index*/, const S
 {
 }
 
-//==============================================================================
 void ChristmasMetronomeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    // Save the sample rate.
     fs = sampleRate;
     
+    // Inform the synthesiser of the playback parameters.
     sleighBellSynth.setCurrentPlaybackSampleRate (sampleRate);
     prepareVoices (sampleRate, samplesPerBlock);
 }
@@ -115,7 +123,7 @@ bool ChristmasMetronomeAudioProcessor::isBusesLayoutSupported (const BusesLayout
 {
     const AudioChannelSet& mainOutput = layouts.getMainOutputChannelSet();
 
-    // only allow stereo and mono
+    // Our plug-in only supports mono or stereo output.
     if (mainOutput.size() > 2) 
         return false;
         
@@ -124,14 +132,18 @@ bool ChristmasMetronomeAudioProcessor::isBusesLayoutSupported (const BusesLayout
 
 void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {   
+    // Get the current information about the play head.
     AudioPlayHead::CurrentPositionInfo head;
     getPlayHead()->getCurrentPosition (head);
     
+    // If the playhead is not moving don't do anything.
     if (! head.isPlaying)
         return;
         
+    // We don't want any external MIDI getting into our synth.
     midiMessages.clear();
     
+    // Find out some stuff about the time signature and bpm.
     double crotchetsPerMinute = head.bpm;
     double samplesPerCrotchet = fs * 60.0 / crotchetsPerMinute;
     double crotchetsPerBeat = 4.0 / head.timeSigDenominator;
@@ -139,11 +151,14 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     int timeSig = head.timeSigNumerator;
     
+    // Work out what beat of the current bar we are on and at what sample we should
+    // play a note from our synthesiser.
     double beatInBar = (head.ppqPosition - head.ppqPositionOfLastBarStart) / crotchetsPerBeat;
     int beatInteger = static_cast <int> (floor (beatInBar));
     double beatFraction = beatInBar - beatInteger;
     double beatSample = - samplesPerBeat * beatFraction;
     
+    // Make sure the sample we are playing on is in or after the current buffer.
     while (beatSample < 0)
     {
         beatSample += samplesPerBeat;
@@ -152,22 +167,26 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     
     const int numSamples = buffer.getNumSamples();
     
+    // Loop through position at which we need to play a note from the synthesiser.
     for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
+        // If the current beat is a downbeat add a downbeat note to the MIDI buffer.
         if (beatInteger % timeSig == 0)
             midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::DownBeatNote, static_cast <uint8> (127)),
                                    static_cast <int> (round (beatSample)));
+        // If not add an other beat note.
         else
             midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::OtherBeatNote, static_cast <uint8> (127)),
                                    static_cast <int> (round (beatSample)));
     }
     
+    // Pass the MIDI data to the synthesiser so it can make the right noises.
     sleighBellSynth.renderNextBlock (buffer, midiMessages, 0, numSamples);
     
+    // Stop any of the midi we generated from escaping the plug-in.
     midiMessages.clear();
 }
 
-//==============================================================================
 bool ChristmasMetronomeAudioProcessor::hasEditor() const
 {
     return true;
@@ -178,7 +197,6 @@ AudioProcessorEditor* ChristmasMetronomeAudioProcessor::createEditor()
     return new ChristmasMetronomeAudioProcessorEditor (*this);
 }
 
-//==============================================================================
 void ChristmasMetronomeAudioProcessor::getStateInformation (MemoryBlock& /*destData*/)
 {
 }
@@ -187,24 +205,29 @@ void ChristmasMetronomeAudioProcessor::setStateInformation (const void* /*data*/
 {
 }
 
+// Set the gain of one of the voices.
 void ChristmasMetronomeAudioProcessor::setVoiceGain (int voice, float gain)
 {
     SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
     v->setGain (gain);
 }
 
+// Set the lpf frequency of one of the voices.
 void ChristmasMetronomeAudioProcessor::setVoiceLpfFrequency (int voice, float frequency)
 {
     SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
     v->setLpfFrequency (frequency);
 }
 
+// Set the hpf frequency of one of the voices.
 void ChristmasMetronomeAudioProcessor::setVoiceHpfFrequency (int voice, float frequency)
 {
     SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
     v->setHpfFrequency (frequency);
 }
 
+// Give all the voices the sample rate so they can set their filters and resampling rates
+// accordingly.
 void ChristmasMetronomeAudioProcessor::prepareVoices (double sampleRate, int samplesPerBlock)
 {       
     for (int i = 0; i < numVoices; ++i)
@@ -216,8 +239,7 @@ void ChristmasMetronomeAudioProcessor::prepareVoices (double sampleRate, int sam
     }
 }
 
-//==============================================================================
-// This creates new instances of the plugin..
+// Create a new instance of our plug-in.
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new ChristmasMetronomeAudioProcessor();
