@@ -22,7 +22,7 @@ void ParameterSlider::valueChanged()
     // If the user is moving the slider, update the plug-in's parameter
     // and notify the host of the change.
     if (isMouseButtonDown())
-        parameter.setValueNotifyingHost (getValue());
+        parameter.setValueNotifyingHost (static_cast <float> (getValue()));
 }
 
 void ParameterSlider::timerCallback()
