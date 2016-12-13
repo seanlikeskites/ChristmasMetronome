@@ -59,6 +59,7 @@ private:
     void setVoiceLpfFrequency (int voice, float frequency);
     void setVoiceHpfFrequency (int voice, float frequency);
     void prepareVoices (double sampleRate, int samplesPerBlock);
+    void releaseVoiceResources();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChristmasMetronomeAudioProcessor)
 };

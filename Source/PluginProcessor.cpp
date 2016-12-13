@@ -117,6 +117,8 @@ void ChristmasMetronomeAudioProcessor::prepareToPlay (double sampleRate, int sam
 
 void ChristmasMetronomeAudioProcessor::releaseResources()
 {
+    // Release the resources the voices allocated.
+    releaseVoiceResources();
 }
 
 bool ChristmasMetronomeAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -236,6 +238,16 @@ void ChristmasMetronomeAudioProcessor::prepareVoices (double sampleRate, int sam
         voice->prepareToPlay (samplesPerBlock, sampleRate);
         voice->setLpfFrequency (*lpfParams [i]);
         voice->setHpfFrequency (*hpfParams [i]);
+    }
+}
+
+// Tell the voices to release their resources.
+void ChristmasMetronomeAudioProcessor::releaseVoiceResources()
+{
+    for (int i = 0; i < numVoices; ++i)
+    {
+        SleighBellVoice *voice = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (i));
+        voice->releaseResources();
     }
 }
 
