@@ -63,15 +63,15 @@ bool SleighBellVoice::canPlaySound (SynthesiserSound *sound)
     return sound->appliesToNote (midiNote);
 }
 
-void SleighBellVoice::startNote (int midiNoteNumber, float velocity, 
-                                 SynthesiserSound *sound, int currentPitchWheelPosition)
+void SleighBellVoice::startNote (int /*midiNoteNumber*/, float /*velocity*/, 
+                                 SynthesiserSound* /*sound*/, int /*currentPitchWheelPosition*/)
 {
     gain = gainValue;
     resetFilters();
     readerSource->setNextReadPosition (0);
 }
 
-void SleighBellVoice::stopNote (float velocity, bool allowTailOff)
+void SleighBellVoice::stopNote (float /*velocity*/, bool /*allowTailOff*/)
 {
     gain = 0.0f;
     clearCurrentNote();

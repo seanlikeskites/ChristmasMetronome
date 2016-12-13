@@ -26,7 +26,7 @@ private:
     void setValue (float newValue) override;
     float getDefaultValue() const override;
     int getNumSteps() const override;
-    String getText (float value, int length) const override;
+    String getText (float x, int length) const override;
     float getValueForText (const String& text) const override;
 };
 

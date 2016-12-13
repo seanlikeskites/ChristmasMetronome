@@ -56,9 +56,9 @@ int ParameterWithCallback::getNumSteps() const
     return AudioProcessorParameterWithID::getNumSteps();
 }
 
-String ParameterWithCallback::getText (float value, int length) const
+String ParameterWithCallback::getText (float x, int length) const
 {
-    String asText (range.convertFrom0to1 (value), 2);
+    String asText (range.convertFrom0to1 (x), 2);
     return length > 0 ? asText.substring (0, length) : asText;
 }
 

@@ -85,16 +85,16 @@ int ChristmasMetronomeAudioProcessor::getCurrentProgram()
     return 0;
 }
 
-void ChristmasMetronomeAudioProcessor::setCurrentProgram (int index)
+void ChristmasMetronomeAudioProcessor::setCurrentProgram (int /*index*/)
 {
 }
 
-const String ChristmasMetronomeAudioProcessor::getProgramName (int index)
+const String ChristmasMetronomeAudioProcessor::getProgramName (int /*index*/)
 {
     return String();
 }
 
-void ChristmasMetronomeAudioProcessor::changeProgramName (int index, const String& newName)
+void ChristmasMetronomeAudioProcessor::changeProgramName (int /*index*/, const String& /*newName*/)
 {
 }
 
@@ -124,23 +124,23 @@ bool ChristmasMetronomeAudioProcessor::isBusesLayoutSupported (const BusesLayout
 
 void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {   
-    AudioPlayHead::CurrentPositionInfo playHead;
-    getPlayHead()->getCurrentPosition (playHead);
+    AudioPlayHead::CurrentPositionInfo head;
+    getPlayHead()->getCurrentPosition (head);
     
-    if (! playHead.isPlaying)
+    if (! head.isPlaying)
         return;
         
     midiMessages.clear();
     
-    double crotchetsPerMinute = playHead.bpm;
+    double crotchetsPerMinute = head.bpm;
     double samplesPerCrotchet = fs * 60.0 / crotchetsPerMinute;
-    double crotchetsPerBeat = 4.0 / playHead.timeSigDenominator;
+    double crotchetsPerBeat = 4.0 / head.timeSigDenominator;
     double samplesPerBeat = samplesPerCrotchet * crotchetsPerBeat;
     
-    int timeSig = playHead.timeSigNumerator;
+    int timeSig = head.timeSigNumerator;
     
-    double beatInBar = (playHead.ppqPosition - playHead.ppqPositionOfLastBarStart) / crotchetsPerBeat;
-    int beatInteger = floor (beatInBar);
+    double beatInBar = (head.ppqPosition - head.ppqPositionOfLastBarStart) / crotchetsPerBeat;
+    int beatInteger = static_cast <int> (floor (beatInBar));
     double beatFraction = beatInBar - beatInteger;
     double beatSample = - samplesPerBeat * beatFraction;
     
@@ -155,11 +155,11 @@ void ChristmasMetronomeAudioProcessor::processBlock (AudioSampleBuffer& buffer, 
     for (; beatSample < numSamples; beatSample += samplesPerBeat, ++beatInteger)
     {
         if (beatInteger % timeSig == 0)
-            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::DownBeatNote, (uint8) 127),
-                                   round (beatSample));
+            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::DownBeatNote, static_cast <uint8> (127)),
+                                   static_cast <int> (round (beatSample)));
         else
-            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::OtherBeatNote, (uint8) 127),
-                                   round (beatSample));
+            midiMessages.addEvent (MidiMessage::noteOn (1, SleighBellVoice::OtherBeatNote, static_cast <uint8> (127)),
+                                   static_cast <int> (round (beatSample)));
     }
     
     sleighBellSynth.renderNextBlock (buffer, midiMessages, 0, numSamples);
@@ -179,11 +179,11 @@ AudioProcessorEditor* ChristmasMetronomeAudioProcessor::createEditor()
 }
 
 //==============================================================================
-void ChristmasMetronomeAudioProcessor::getStateInformation (MemoryBlock& destData)
+void ChristmasMetronomeAudioProcessor::getStateInformation (MemoryBlock& /*destData*/)
 {
 }
 
-void ChristmasMetronomeAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void ChristmasMetronomeAudioProcessor::setStateInformation (const void* /*data*/, int /*sizeInBytes*/)
 {
 }
 
@@ -201,7 +201,7 @@ void ChristmasMetronomeAudioProcessor::setVoiceLpfFrequency (int voice, float fr
 
 void ChristmasMetronomeAudioProcessor::setVoiceHpfFrequency (int voice, float frequency)
 {
-    SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (0));
+    SleighBellVoice *v = static_cast <SleighBellVoice*> (sleighBellSynth.getVoice (voice));
     v->setHpfFrequency (frequency);
 }
 
